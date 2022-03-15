@@ -4,7 +4,7 @@ const Utils = require('../../utils');
 const { Transaction } = require('../../transaction');
 const _ = require('lodash');
 const MySqlQueryGenerator = require('../mysql/query-generator');
-const AbstractQueryGenerator = require('../abstract/query-generator');
+const { AbstractQueryGenerator } = require('../abstract/query-generator');
 
 class SQLiteQueryGenerator extends MySqlQueryGenerator {
   createSchema() {

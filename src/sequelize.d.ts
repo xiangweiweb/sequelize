@@ -21,8 +21,8 @@ import {
   ModelType,
   CreationAttributes,
   Attributes,
-  WhereAttributeHash, 
-  ColumnReference,
+  WhereAttributeHash,
+  ColumnReference, BuiltModelAttribute,
 } from './model';
 import { ModelManager } from './model-manager';
 import { QueryTypes, Transaction, TransactionOptions, TRANSACTION_TYPES, ISOLATION_LEVELS, PartlyRequired, Op } from '.';
@@ -179,7 +179,7 @@ export interface RetryOptions {
 /**
  * Options for the constructor of Sequelize main class
  */
-export interface Options extends Logging {
+export interface SequelizeOptions extends Logging {
   /**
    * The dialect of the database you are connecting to. One of mysql, postgres, sqlite, mariadb and mssql.
    *
@@ -205,7 +205,12 @@ export interface Options extends Logging {
   /**
    * An object of additional options, which are passed directly to the connection library
    */
-  dialectOptions?: object;
+  dialectOptions?: {
+    prependSearchPath?: boolean,
+
+    // other options
+    [key: string]: any
+  };
 
   /**
    * Only used by sqlite.
@@ -401,6 +406,15 @@ export interface Options extends Logging {
    */
   schema?: string;
 }
+
+export type NormalizedSequelizeOptions = PartlyRequired<
+  SequelizeOptions,
+  | 'dialectModule' | 'dialectModulePath' | 'host' | 'protocol' | 'define'
+  | 'query' | 'sync' | 'timezone' | 'standardConformingStrings'
+  | 'logging' | 'omitNull' | 'native' | 'replication' | 'pool' | 'quoteIdentifiers' | 'hooks'
+  | 'retry' | 'transactionType' | 'isolationLevel' | 'typeValidation' | 'benchmark'
+  | 'minifyAliases' | 'logQueryParameters'
+>;
 
 export interface QueryOptionsTransactionRequired { }
 
@@ -776,8 +790,8 @@ export class Sequelize extends Hooks {
    * @param name
    * @param fn   A callback function that is called with config, options
    */
-  public static beforeInit(name: string, fn: (config: Config, options: Options) => void): void;
-  public static beforeInit(fn: (config: Config, options: Options) => void): void;
+  public static beforeInit(name: string, fn: (config: Config, options: SequelizeOptions) => void): void;
+  public static beforeInit(fn: (config: Config, options: SequelizeOptions) => void): void;
 
   /**
    * A hook that is run after Sequelize() call
@@ -839,7 +853,7 @@ export class Sequelize extends Hooks {
    */
   public readonly config: Config;
 
-  public readonly options: PartlyRequired<Options, 'transactionType' | 'isolationLevel'>;
+  public readonly options: NormalizedSequelizeOptions;
 
   public readonly dialect: AbstractDialect;
 
@@ -890,9 +904,9 @@ export class Sequelize extends Hooks {
    *   database.
    * @param options An object with options.
    */
-  constructor(database: string, username: string, password?: string, options?: Options);
-  constructor(database: string, username: string, options?: Options);
-  constructor(options?: Options);
+  constructor(database: string, username: string, password?: string, options?: SequelizeOptions);
+  constructor(database: string, username: string, options?: SequelizeOptions);
+  constructor(options?: SequelizeOptions);
 
   /**
    * Instantiate sequelize with an URI
@@ -900,7 +914,7 @@ export class Sequelize extends Hooks {
    * @param uri A full database URI
    * @param options See above for possible options
    */
-  constructor(uri: string, options?: Options);
+  constructor(uri: string, options?: SequelizeOptions);
 
   /**
    * A hook that is run before validation
@@ -1091,8 +1105,8 @@ export class Sequelize extends Hooks {
    * @param name
    * @param fn   A callback function that is called with config, options
    */
-  public beforeInit(name: string, fn: (config: Config, options: Options) => void): void;
-  public beforeInit(fn: (config: Config, options: Options) => void): void;
+  public beforeInit(name: string, fn: (config: Config, options: SequelizeOptions) => void): void;
+  public beforeInit(fn: (config: Config, options: SequelizeOptions) => void): void;
 
   /**
    * A hook that is run after Sequelize() call
@@ -1500,7 +1514,8 @@ export function or<T extends Array<any>>(...args: T): { [Op.or]: T };
  */
 export function json(conditionsOrPath: string | object, value?: string | number | boolean): Json;
 
-export type WhereLeftOperand = Fn | ColumnReference | Literal | Cast | ModelAttributeColumnOptions;
+// TODO (https://github.com/sequelize/sequelize/pull/14020): Replace 'Col' with 'ColumnReference'
+export type WhereLeftOperand = Fn | Col | Literal | Cast | BuiltModelAttribute;
 
 /**
  * A way of specifying "attr = condition".

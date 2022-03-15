@@ -1,5 +1,6 @@
 import isObject from 'lodash/isObject';
 import type { Op, WhereOperators, WhereLeftOperand } from '..';
+import type { Escapable } from '../sql-string.js';
 
 /**
  * Utility functions for representing SQL functions, and columns that should be escaped.
@@ -13,13 +14,17 @@ export class SequelizeMethod {}
  * Do not use me directly. Use {@link Sequelize.fn}
  */
 export class Fn extends SequelizeMethod {
-  private readonly fn: string;
-  private readonly args: unknown[];
+  readonly fn: string;
 
-  constructor(fn: string, args: unknown[]) {
+  readonly args: Array<Escapable | SequelizeMethod>;
+
+  constructor(
+    fn: Fn['fn'],
+    ...args: Fn['args']
+  ) {
     super();
     this.fn = fn;
-    this.args = args;
+    this.args = args ?? [];
   }
 
   clone(): Fn {
@@ -31,16 +36,10 @@ export class Fn extends SequelizeMethod {
  * Do not use me directly. Use {@link Sequelize.col}
  */
 export class Col extends SequelizeMethod {
-  private readonly col: string[] | string;
+  readonly col: string;
 
-  constructor(col: string[] | string, ...args: string[]) {
+  constructor(col: string) {
     super();
-    // TODO(ephys): this does not look right. First parameter is ignored if a second parameter is provided.
-    //  should we change the signature to `constructor(...cols: string[])`
-    if (args.length > 0) {
-      col = args;
-    }
-
     this.col = col;
   }
 }
@@ -49,8 +48,8 @@ export class Col extends SequelizeMethod {
  * Do not use me directly. Use {@link Sequelize.cast}
  */
 export class Cast extends SequelizeMethod {
-  private readonly val: any;
-  private readonly type: string;
+  readonly val: any;
+  readonly type: string;
   private readonly json: boolean;
 
   constructor(val: unknown, type: string = '', json: boolean = false) {
@@ -68,9 +67,9 @@ export class Literal extends SequelizeMethod {
   /** this (type-only) brand prevents TypeScript from thinking Cast is assignable to Literal because they share the same shape */
   declare private readonly brand: 'literal';
 
-  private readonly val: unknown;
+  readonly val: string;
 
-  constructor(val: unknown) {
+  constructor(val: string) {
     super();
     this.val = val;
   }
@@ -80,7 +79,7 @@ export class Literal extends SequelizeMethod {
  * Do not use me directly. Use {@link Sequelize.json}
  */
 export class Json extends SequelizeMethod {
-  private readonly conditions?: { [key: string]: any };
+  readonly conditions?: { [key: string]: any };
   private readonly path?: string;
   private readonly value?: string | number | boolean | null;
 
@@ -107,11 +106,12 @@ export class Json extends SequelizeMethod {
  */
 export class Where<Operator extends keyof WhereOperators = typeof Op.eq> extends SequelizeMethod {
   // TODO [=7]: rename to leftOperand after typescript migration
-  private readonly attribute: WhereLeftOperand;
+  readonly attribute: WhereLeftOperand;
   // TODO [=7]: rename to operator after typescript migration
-  private readonly comparator: string | Operator;
+  // TODO: make readonly again during https://github.com/sequelize/sequelize/pull/14020 rewrite
+  comparator: string | Operator;
   // TODO [=7]: rename to rightOperand after typescript migration
-  private readonly logic: WhereOperators[Operator] | any;
+  readonly logic: WhereOperators[Operator] | any;
 
   constructor(leftOperand: WhereLeftOperand, operator: Operator, rightOperand: WhereOperators[Operator]);
   constructor(leftOperand: WhereLeftOperand, operator: string, rightOperand: any);

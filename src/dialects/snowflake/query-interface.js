@@ -9,7 +9,8 @@ const { QueryTypes } = require('../../query-types');
  */
 class SnowflakeQueryInterface extends QueryInterface {
   /**
-   * A wrapper that fixes Snowflake's inability to cleanly remove columns from existing tables if they have a foreign key constraint.
+   * A wrapper that fixes Snowflake's inability to cleanly remove columns from existing tables if they have a foreign key
+   * constraint.
    *
    * @override
    */
@@ -46,7 +47,8 @@ class SnowflakeQueryInterface extends QueryInterface {
     options.updateOnDuplicate = Object.keys(updateValues);
 
     const model = options.model;
-    const sql = this.queryGenerator.insertQuery(tableName, insertValues, model.rawAttributes, options);
+    const { bindParam, ...sql } = this.queryGenerator.insertQuery(tableName, insertValues, model.rawAttributes, options);
+    options.bindParam = bindParam;
 
     return await this.sequelize.query(sql, options);
   }

@@ -1,6 +1,6 @@
 import { IndexHints } from './index-hints';
 import { Association, BelongsTo, BelongsToMany, BelongsToManyOptions, BelongsToOptions, HasMany, HasManyOptions, HasOne, HasOneOptions } from './associations/index';
-import { DataType } from './data-types';
+import { AbstractDataType, DataType } from './data-types';
 import { Deferrable } from './deferrable';
 import { HookReturn, Hooks, ModelHooks } from './hooks';
 import { ValidationOptions } from './instance-validator';
@@ -1643,11 +1643,22 @@ export interface ModelAttributeColumnOptions<M extends Model = Model> extends Co
   set?(this: M, val: unknown): void;
 }
 
-export interface BuiltModelAttributeColumOptions<M extends Model = Model> extends ModelAttributeColumnOptions {
+export type BuiltModelAttribute<M extends Model = Model> = Omit<ModelAttributeColumnOptions<M>, 'type'> & {
   /**
    * The name of the attribute (JS side).
    */
   fieldName: string;
+
+  /**
+   * The type of the attribute.
+   * It is normalized to always be an instance of a subclass of {@link AbstractDataType}.
+   */
+  type: AbstractDataType;
+
+  /**
+   * A reference to the model that owns this attribute.
+   */
+  Model: ModelStatic<M>;
 }
 
 /**
@@ -1830,6 +1841,10 @@ export interface AddScopeOptions {
   override: boolean;
 }
 
+export type BuiltModelAttributes<M extends Model> = {
+  readonly [Key in keyof Attributes<M>]: BuiltModelAttribute
+};
+
 export abstract class Model<TModelAttributes extends {} = any, TCreationAttributes extends {} = TModelAttributes>
   extends Hooks<Model<TModelAttributes, TCreationAttributes>, TModelAttributes, TCreationAttributes>
 {
@@ -1893,14 +1908,12 @@ export abstract class Model<TModelAttributes extends {} = any, TCreationAttribut
    *
    * @deprecated use {@link Model.getAttributes} for better typings.
    */
-  public static readonly rawAttributes: { [attribute: string]: BuiltModelAttributeColumOptions };
+  public static readonly rawAttributes: BuiltModelAttributes<any>;
 
   /**
    * Returns the attributes of the model
    */
-  public static getAttributes<M extends Model>(this: ModelStatic<M>): {
-    readonly [Key in keyof Attributes<M>]: BuiltModelAttributeColumOptions
-  };
+  public static getAttributes<M extends Model>(this: ModelStatic<M>): BuiltModelAttributes<M>;
 
   /**
    * Reference to the sequelize instance the model was initialized with

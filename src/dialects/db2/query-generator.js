@@ -3,7 +3,7 @@
 const _ = require('lodash');
 const Utils = require('../../utils');
 const DataTypes = require('../../data-types');
-const AbstractQueryGenerator = require('../abstract/query-generator');
+const { AbstractQueryGenerator } = require('../abstract/query-generator');
 const randomBytes = require('crypto').randomBytes;
 const { Op } = require('../../operators');
 

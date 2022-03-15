@@ -9,7 +9,8 @@ const { QueryTypes } = require('../../query-types');
  */
 class MySQLQueryInterface extends QueryInterface {
   /**
-   * A wrapper that fixes MySQL's inability to cleanly remove columns from existing tables if they have a foreign key constraint.
+   * A wrapper that fixes MySQL's inability to cleanly remove columns from existing tables if they have a foreign key
+   * constraint.
    *
    * @override
    */
@@ -49,7 +50,8 @@ class MySQLQueryInterface extends QueryInterface {
     options.upsertKeys = Object.values(options.model.primaryKeys).map(item => item.field);
 
     const model = options.model;
-    const sql = this.queryGenerator.insertQuery(tableName, insertValues, model.rawAttributes, options);
+    const { bindParam, ...sql } = this.queryGenerator.insertQuery(tableName, insertValues, model.rawAttributes, options);
+    options.bindParam = bindParam;
 
     return await this.sequelize.query(sql, options);
   }

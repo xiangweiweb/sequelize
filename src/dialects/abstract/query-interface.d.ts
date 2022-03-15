@@ -17,8 +17,8 @@ import { QueryTypes } from '../../query-types';
 import { Sequelize, RetryOptions } from '../../sequelize';
 import { Transaction } from '../../transaction';
 import { SetRequired } from '../../utils/set-required';
-import { Fn, Literal } from '../../utils';
-import { Deferrable } from '../../deferrable';
+import { AbstractDeferrable } from '../../deferrable';
+import { IndexField } from './query-generator.js';
 
 type BindOrReplacements = { [key: string]: unknown } | unknown[];
 type FieldMap = { [key: string]: string };
@@ -187,7 +187,7 @@ export interface IndexesOptions {
    * (field name), `length` (create a prefix index of length chars), `order` (the direction the column
    * should be sorted in), `collate` (the collation (sort order) for the column), `operator` (likes IndexesOptions['operator'])
    */
-  fields?: (string | { name: string; length?: number; order?: 'ASC' | 'DESC'; collate?: string; operator?: string } | Fn | Literal)[];
+  fields?: IndexField[];
 
   /**
    * The method to create the index by (`USING` statement in SQL). BTREE and HASH are supported by mysql and
@@ -220,7 +220,7 @@ export interface BaseConstraintOptions {
 
 export interface AddUniqueConstraintOptions extends BaseConstraintOptions {
   type: 'unique';
-  deferrable?: Deferrable;
+  deferrable?: AbstractDeferrable;
 }
 
 export interface AddDefaultConstraintOptions extends BaseConstraintOptions {
@@ -235,7 +235,7 @@ export interface AddCheckConstraintOptions extends BaseConstraintOptions {
 
 export interface AddPrimaryKeyConstraintOptions extends BaseConstraintOptions {
   type: 'primary key';
-  deferrable?: Deferrable;
+  deferrable?: AbstractDeferrable;
 }
 
 export interface AddForeignKeyConstraintOptions extends BaseConstraintOptions {
@@ -246,7 +246,7 @@ export interface AddForeignKeyConstraintOptions extends BaseConstraintOptions {
   };
   onDelete: string;
   onUpdate: string;
-  deferrable?: Deferrable;
+  deferrable?: AbstractDeferrable;
 }
 
 export type AddConstraintOptions =
@@ -463,11 +463,6 @@ export class QueryInterface {
   public showIndex(tableName: string | object, options?: QueryOptions): Promise<object>;
 
   /**
-   * Put a name to an index
-   */
-  public nameIndexes(indexes: string[], rawTablename: string): Promise<void>;
-
-  /**
    * Returns all foreign key constraints of requested tables
    */
   public getForeignKeysForTables(tableNames: string[], options?: QueryInterfaceOptions): Promise<object>;
@@ -556,8 +551,21 @@ export class QueryInterface {
   public increment<M extends Model>(
     instance: Model,
     tableName: TableName,
+    where: WhereOptions<Attributes<M>>,
     values: object,
-    identifier: WhereOptions<Attributes<M>>,
+    extraAttributesToBeUpdated: object,
+    options?: QueryOptions
+  ): Promise<object>;
+
+  /**
+   * Decrements a row value
+   */
+  public decrement<M extends Model>(
+    instance: Model,
+    tableName: TableName,
+    where: WhereOptions<Attributes<M>>,
+    values: object,
+    extraAttributesToBeUpdated: object,
     options?: QueryOptions
   ): Promise<object>;
 

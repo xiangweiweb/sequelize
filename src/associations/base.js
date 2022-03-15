@@ -140,3 +140,4 @@ class Association {
 }
 
 module.exports = Association;
+module.exports.Association = Association;

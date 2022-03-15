@@ -3,7 +3,7 @@
 const Utils = require('../../utils');
 const util = require('util');
 const DataTypes = require('../../data-types');
-const AbstractQueryGenerator = require('../abstract/query-generator');
+const { AbstractQueryGenerator } = require('../abstract/query-generator');
 const semver = require('semver');
 const _ = require('lodash');
 
@@ -119,9 +119,7 @@ class PostgresQueryGenerator extends AbstractQueryGenerator {
   }
 
   dropTableQuery(tableName, options) {
-    options = options || {};
-
-    return `DROP TABLE IF EXISTS ${this.quoteTable(tableName)}${options.cascade ? ' CASCADE' : ''};`;
+    return `DROP TABLE IF EXISTS ${this.quoteTable(tableName)}${options?.cascade ? ' CASCADE' : ''};`;
   }
 
   showTablesQuery() {

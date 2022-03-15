@@ -553,26 +553,27 @@ class QueryInterface {
    * @param {string}  [options.type]   Type of index, available options are UNIQUE|FULLTEXT|SPATIAL
    * @param {string}  [options.name]   Name of the index. Default is <table>_<attr1>_<attr2>
    * @param {object}  [options.where]  Where condition on index, for partial indexes
-   * @param {string}  [rawTablename]   table name, this is just for backward compatibiity
+   * @param {string}  [rawTableName]   table name, this is just for backward compatibiity
    *
    * @returns {Promise}
    */
-  async addIndex(tableName, attributes, options, rawTablename) {
+  async addIndex(tableName, attributes, options, rawTableName) {
+    // TODO: remove attributes - kept for backward compatibility
     // Support for passing tableName, attributes, options or tableName, options (with a fields param which is the attributes)
     if (!Array.isArray(attributes)) {
-      rawTablename = options;
+      rawTableName = options;
       options = attributes;
       attributes = options.fields;
     }
 
-    if (!rawTablename) {
+    if (!rawTableName) {
       // Map for backwards compat
-      rawTablename = tableName;
+      rawTableName = tableName;
     }
 
     options = Utils.cloneDeep(options);
     options.fields = attributes;
-    const sql = this.queryGenerator.addIndexQuery(tableName, options, rawTablename);
+    const sql = this.queryGenerator.addIndexQuery(tableName, options, rawTableName);
 
     return await this.sequelize.query(sql, { ...options, supportsSearchPath: false });
   }
@@ -732,16 +733,21 @@ class QueryInterface {
    *
    * @param {string} tableName                   Table name where you want to add a constraint
    * @param {object} options                     An object to define the constraint name, type etc
-   * @param {string} options.type                Type of constraint. One of the values in available constraints(case insensitive)
+   * @param {string} options.type                Type of constraint. One of the values in available constraints(case
+   *   insensitive)
    * @param {Array}  options.fields              Array of column names to apply the constraint over
-   * @param {string} [options.name]              Name of the constraint. If not specified, sequelize automatically creates a named constraint based on constraint type, table & column names
+   * @param {string} [options.name]              Name of the constraint. If not specified, sequelize automatically creates a
+   *   named constraint based on constraint type, table & column names
    * @param {string} [options.defaultValue]      The value for the default constraint
    * @param {object} [options.where]             Where clause/expression for the CHECK constraint
-   * @param {object} [options.references]        Object specifying target table, column name to create foreign key constraint
+   * @param {object} [options.references]        Object specifying target table, column name to create foreign key
+   *   constraint
    * @param {string} [options.references.table]  Target table name
    * @param {string} [options.references.field]  Target column name
-   * @param {string} [options.references.fields] Target column names for a composite primary key. Must match the order of fields in options.fields.
-   * @param {string} [options.deferrable]        Sets the constraint to be deferred or immediately checked. See Sequelize.Deferrable. PostgreSQL Only
+   * @param {string} [options.references.fields] Target column names for a composite primary key. Must match the order of
+   *   fields in options.fields.
+   * @param {string} [options.deferrable]        Sets the constraint to be deferred or immediately checked. See
+   *   Sequelize.Deferrable. PostgreSQL Only
    *
    * @returns {Promise}
    */
@@ -781,10 +787,11 @@ class QueryInterface {
   async insert(instance, tableName, values, options) {
     options = Utils.cloneDeep(options);
     options.hasTrigger = instance && instance.constructor.options.hasTrigger;
-    const sql = this.queryGenerator.insertQuery(tableName, values, instance && instance.constructor.rawAttributes, options);
+    const { bindParam, ...sql } = this.queryGenerator.insertQuery(tableName, values, instance && instance.constructor.rawAttributes, options);
 
     options.type = QueryTypes.INSERT;
     options.instance = instance;
+    options.bindParam = bindParam;
 
     const results = await this.sequelize.query(sql, options);
     if (instance) {
@@ -845,7 +852,8 @@ class QueryInterface {
       options.upsertKeys = _.uniq(options.upsertKeys);
     }
 
-    const sql = this.queryGenerator.insertQuery(tableName, insertValues, model.rawAttributes, options);
+    const { bindParam, ...sql } = this.queryGenerator.insertQuery(tableName, insertValues, model.rawAttributes, options);
+    options.bindParam = bindParam;
 
     return await this.sequelize.query(sql, options);
   }
@@ -887,7 +895,11 @@ class QueryInterface {
     options = { ...options };
     options.hasTrigger = instance && instance.constructor.options.hasTrigger;
 
-    const sql = this.queryGenerator.updateQuery(tableName, values, identifier, options, instance.constructor.rawAttributes);
+    const { optionOverride, ...sql } = this.queryGenerator.updateQuery(tableName, values, identifier, options, instance.constructor.rawAttributes);
+
+    if (optionOverride) {
+      Object.assign(options, optionOverride);
+    }
 
     options.type = QueryTypes.UPDATE;
 
@@ -921,9 +933,13 @@ class QueryInterface {
       identifier = Utils.cloneDeep(identifier);
     }
 
-    const sql = this.queryGenerator.updateQuery(tableName, values, identifier, options, attributes);
+    const { optionOverride, ...sql } = this.queryGenerator.updateQuery(tableName, values, identifier, options, attributes);
     const table = _.isObject(tableName) ? tableName : { tableName };
     const model = _.find(this.sequelize.modelManager.models, { tableName: table.tableName });
+
+    if (optionOverride) {
+      Object.assign(options, optionOverride);
+    }
 
     options.type = QueryTypes.BULKUPDATE;
     options.model = model;
@@ -981,8 +997,10 @@ class QueryInterface {
    * @param {object}  where                where conditions to find records to delete
    * @param {object}  [options]            options
    * @param {boolean} [options.truncate]   Use truncate table command
-   * @param {boolean} [options.cascade=false]         Only used in conjunction with TRUNCATE. Truncates  all tables that have foreign-key references to the named table, or to any tables added to the group due to CASCADE.
-   * @param {boolean} [options.restartIdentity=false] Only used in conjunction with TRUNCATE. Automatically restart sequences owned by columns of the truncated table.
+   * @param {boolean} [options.cascade=false]         Only used in conjunction with TRUNCATE. Truncates  all tables that
+   *   have foreign-key references to the named table, or to any tables added to the group due to CASCADE.
+   * @param {boolean} [options.restartIdentity=false] Only used in conjunction with TRUNCATE. Automatically restart
+   *   sequences owned by columns of the truncated table.
    * @param {Model}   [model]              Model
    *
    * @returns {Promise}
@@ -1148,8 +1166,10 @@ class QueryInterface {
    * @param {string}  body          Source code of function
    * @param {Array}   optionsArray  Extra-options for creation
    * @param {object}  [options]     query options
-   * @param {boolean} options.force If force is true, any existing functions with the same parameters will be replaced. For postgres, this means using `CREATE OR REPLACE FUNCTION` instead of `CREATE FUNCTION`. Default is false
-   * @param {Array<object>}   options.variables List of declared variables. Each variable should be an object with string fields `type` and `name`, and optionally having a `default` field as well.
+   * @param {boolean} options.force If force is true, any existing functions with the same parameters will be replaced. For
+   *   postgres, this means using `CREATE OR REPLACE FUNCTION` instead of `CREATE FUNCTION`. Default is false
+   * @param {Array<object>}   options.variables List of declared variables. Each variable should be an object with string
+   *   fields `type` and `name`, and optionally having a `default` field as well.
    *
    * @returns {Promise}
    */

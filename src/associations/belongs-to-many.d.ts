@@ -98,6 +98,7 @@ export class BelongsToMany<S extends Model = Model, T extends Model = Model> ext
   public sourceKey: string;
   public targetKey: string;
   public accessors: MultiAssociationAccessors;
+  public through: ThroughOptions;
   constructor(source: ModelCtor<S>, target: ModelCtor<T>, options: BelongsToManyOptions);
 }
 

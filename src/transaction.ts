@@ -18,9 +18,9 @@ export class Transaction {
   private readonly _afterCommitHooks: Set<AfterTransactionCommitCallback> = new Set();
   private readonly savepoints: Transaction[] = [];
   private readonly options: PartlyRequired<TransactionOptions, 'type' | 'isolationLevel' | 'readOnly'>;
-  private readonly parent: Transaction | null;
+  readonly parent: Transaction | null;
   private readonly id: string;
-  private readonly name: string;
+  readonly name: string;
   private finished: 'commit' | undefined;
   private connection: Connection | undefined;
 

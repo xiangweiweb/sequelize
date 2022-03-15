@@ -1,4 +1,7 @@
 import _inflection from 'inflection';
+import type { TableName } from '../../types/index.js';
+import type { IndexField } from '../dialects/abstract/query-generator.js';
+import { SequelizeMethod } from './sequelize-method.js';
 
 /* Inflection */
 type Inflection = typeof _inflection;
@@ -57,13 +60,11 @@ export function pluralize(str: string): string {
 }
 
 type NameIndexIndex = {
-  fields: Array<{ name: string, attribute: string }>,
-  name: string,
+  fields: IndexField[],
+  name?: string,
 };
-type NameIndexTableName = string | { tableName: string };
 
 /**
- *
  * @param index
  * @param index.fields
  * @param index.name
@@ -71,20 +72,31 @@ type NameIndexTableName = string | { tableName: string };
  *
  * @private
  */
-export function nameIndex(
-  index: NameIndexIndex,
-  tableName: NameIndexTableName,
-) {
+export function inferIndexName(
+  index: Readonly<NameIndexIndex>,
+  tableName: Readonly<TableName>,
+): string {
+  if (index.name) {
+    return index.name;
+  }
+
   if (typeof tableName !== 'string' && tableName.tableName) {
     tableName = tableName.tableName;
   }
 
-  if (!Object.prototype.hasOwnProperty.call(index, 'name')) {
-    const fields = index.fields.map(field => (typeof field === 'string' ? field : field.name || field.attribute));
-    index.name = underscore(`${tableName}_${fields.join('_')}`);
-  }
+  const fields = index.fields.map(field => {
+    if (typeof field === 'string') {
+      return field;
+    }
 
-  return index;
+    if (field instanceof SequelizeMethod) {
+      throw new TypeError(`Sequelize cannot infer the name of an index for you if you use ${field.constructor.name}, you need to provide one manually using the 'name' option.`);
+    }
+
+    return (typeof field === 'string' ? field : field.name);
+  });
+
+  return underscore(`${tableName}_${fields.join('_')}`);
 }
 
 /**

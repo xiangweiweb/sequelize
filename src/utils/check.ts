@@ -1,9 +1,10 @@
 import isEmpty from 'lodash/isEmpty';
-import isPlainObject from 'lodash/isPlainObject';
-import type { DataType } from '..';
+import _isPlainObject from 'lodash/isPlainObject';
+import type { DataType, ModelStatic } from '..';
 import { getOperators } from './format';
-// eslint-disable-next-line import/order -- caused by temporarily mixing require with import
 import { Where } from './sequelize-method';
+// eslint-disable-next-line import/order -- caused by temporarily mixing require with import
+import { Model } from '..';
 
 const DataTypes = require('../data-types');
 
@@ -11,6 +12,19 @@ export function isPrimitive(val: any): val is string | number | boolean {
   const type = typeof val;
 
   return ['string', 'number', 'boolean'].includes(type);
+}
+
+/**
+ * Like lodash's {@link _isPlainObject}, but typed
+ *
+ * @param val
+ */
+export function isPlainObject(val: any): val is object {
+  return _isPlainObject(val);
+}
+
+export function isModelSubclass(val: any): val is ModelStatic<any> {
+  return typeof val === 'function' && val.prototype instanceof Model;
 }
 
 /**
@@ -23,7 +37,7 @@ export function isPrimitive(val: any): val is string | number | boolean {
  * isColString('$project.name$'); // true
  * isColString('name'); // false
  */
-export function isColString(value: string): boolean {
+export function isColString(value: any): value is string {
   return (
     typeof value === 'string'
     && value.startsWith('$')

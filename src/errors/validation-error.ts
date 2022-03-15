@@ -67,7 +67,7 @@ export class ValidationErrorItem {
   /**
    * The value that generated the error
    */
-  readonly value: string | null;
+  readonly value: unknown | null;
 
   readonly origin: keyof typeof ValidationErrorItemOrigin | null;
 
@@ -104,16 +104,16 @@ export class ValidationErrorItem {
    * @param fnArgs parameters used with the BUILT-IN validator function, if applicable
    */
   constructor(
-    message: string,
-    type:
+    message?: string,
+    type?:
       | keyof typeof ValidationErrorItemType
       | keyof typeof ValidationErrorItemOrigin,
-    path: string,
-    value: string,
-    instance: Model,
-    validatorKey: string,
-    fnName: string,
-    fnArgs: unknown[],
+    path?: string,
+    value?: unknown,
+    instance?: Model | null,
+    validatorKey?: string,
+    fnName?: string,
+    fnArgs?: unknown[],
   ) {
     this.message = message || '';
     this.type = null;

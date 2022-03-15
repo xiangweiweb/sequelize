@@ -1,3 +1,5 @@
+import type { Dialect } from '../../sequelize.js';
+
 export type DialectSupports = {
   'DEFAULT': boolean,
   'DEFAULT VALUES': boolean,
@@ -64,11 +66,17 @@ export type DialectSupports = {
   },
   index: {
     collate: boolean,
+    // TODO: rename 'length' flag as tools interpret 'length' as being Array#length
     length: boolean,
     parser: boolean,
     concurrently: boolean,
     type: boolean,
-    using: boolean | number,
+    /**
+     * Set to false if 'USING' not supported in indexes.
+     * Set to 1 if 'USING' should be generated before the 'ON' clause.
+     * Set to 2 if 'USING' should be generated after the 'ON' clause.
+     */
+    using: false | number,
     functionBased: boolean,
     operator: boolean,
     where: boolean,
@@ -96,6 +104,8 @@ export type DialectSupports = {
 };
 
 export abstract class AbstractDialect {
+  declare name: Dialect;
+
   /**
    * List of features this dialect supports.
    *
@@ -157,7 +167,7 @@ export abstract class AbstractDialect {
       parser: false,
       concurrently: false,
       type: false,
-      using: true,
+      using: false,
       functionBased: false,
       operator: false,
       where: false,

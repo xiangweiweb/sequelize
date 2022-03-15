@@ -242,6 +242,8 @@ export function removeNullishValuesFromHash(
   forIn(hash, (val: any, key: string) => {
     if (
       allowNull.includes(key)
+        // TODO: special-casing attributes that end with 'Id'
+        //  is going to lead to bugs, users can customize every name.
         || key.endsWith('Id')
         || val !== null && val !== undefined
     ) {

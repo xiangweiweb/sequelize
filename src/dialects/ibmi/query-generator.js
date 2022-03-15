@@ -3,7 +3,7 @@
 const Utils = require('../../utils');
 const util = require('util');
 const _ = require('lodash');
-const AbstractQueryGenerator = require('../abstract/query-generator');
+const { AbstractQueryGenerator } = require('../abstract/query-generator');
 const DataTypes = require('../../data-types');
 const Model = require('../../model');
 const SqlString = require('../../sql-string');
@@ -115,6 +115,7 @@ class IBMiQueryGenerator extends AbstractQueryGenerator {
       END`;
   }
 
+  // TODO: why is 'schema' on options instead of tableName?
   dropTableQuery(tableName, options) {
     let table = tableName;
     let schema;
@@ -379,11 +380,9 @@ class IBMiQueryGenerator extends AbstractQueryGenerator {
       return result;
     });
 
-    if (!options.name) {
-      // Mostly for cases where addIndex is called directly by the user without an options object (for example in migrations)
-      // All calls that go through sequelize should already have a name
-      options = Utils.nameIndex(options, options.prefix);
-    }
+    // Mostly for cases where addIndex is called directly by the user without an options object (for example in migrations)
+    // All calls that go through sequelize should already have a name
+    options.name = Utils.inferIndexName(options, options.prefix);
 
     options = Model._conformIndex(options);
 

@@ -1,17 +1,48 @@
-'use strict';
+import type { AbstractQueryGenerator } from './dialects/abstract/query-generator.js';
+import { classToInvokable } from './utils/index.js';
 
-const { classToInvokable } = require('./utils');
-
+/**
+ * Can be used to
+ * make foreign key constraints deferrable and to set the constaints within a
+ * transaction. This is only supported in PostgreSQL.
+ *
+ * The foreign keys can be configured like this. It will create a foreign key
+ * that will check the constraints immediately when the data was inserted.
+ *
+ * ```js
+ * class MyModel extends Model {}
+ * MyModel.init({
+ *   foreign_id: {
+ *     type: Sequelize.INTEGER,
+ *     references: {
+ *       model: OtherModel,
+ *       key: 'id',
+ *       deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE
+ *     }
+ *   }
+ * }, { sequelize });
+ * ```
+ *
+ * The constraints can be configured in a transaction like this. It will
+ * trigger a query once the transaction has been started and set the constraints
+ * to be checked at the very end of the transaction.
+ *
+ * ```js
+ * sequelize.transaction({
+ *   deferrable: Sequelize.Deferrable.SET_DEFERRED
+ * });
+ * ```
+ */
 class ABSTRACT {
-  static toString(...args) {
-    return new this().toString(...args);
+  static toString(queryGenerator: AbstractQueryGenerator) {
+    return new this().toString(queryGenerator);
   }
 
-  toString(...args) {
-    return this.toSql(...args);
+  toString(queryGenerator: AbstractQueryGenerator) {
+    return this.toSql(queryGenerator);
   }
 
-  toSql() {
+  toSql(_queryGenerator: AbstractQueryGenerator) {
     throw new Error('toSql implementation missing');
   }
 }
@@ -28,30 +59,53 @@ class INITIALLY_IMMEDIATE extends ABSTRACT {
   }
 }
 
+/**
+ * Will set the constraints to not deferred. This is the default in PostgreSQL and it make
+ * it impossible to dynamically defer the constraints within a transaction.
+ */
 class NOT extends ABSTRACT {
   toSql() {
     return 'NOT DEFERRABLE';
   }
 }
 
+/**
+ * Will trigger an additional query at the beginning of a
+ * transaction which sets the constraints to deferred.
+ */
 class SET_DEFERRED extends ABSTRACT {
-  constructor(constraints) {
+  private readonly constraints: string[];
+  /**
+   * @param constraints An array of constraint names. Will defer all constraints by default.
+   */
+  constructor(constraints: string[]) {
     super();
     this.constraints = constraints;
   }
 
-  toSql(queryGenerator) {
+  toSql(queryGenerator: AbstractQueryGenerator): string {
     return queryGenerator.setDeferredQuery(this.constraints);
   }
 }
 
+/**
+ * Will trigger an additional query at the beginning of a
+ * transaction which sets the constraints to immediately.
+ *
+ * @param constraints An array of constraint names. Will defer all constraints by default.
+ */
 class SET_IMMEDIATE extends ABSTRACT {
-  constructor(constraints) {
+  private readonly constraints: string[];
+
+  /**
+   * @param constraints An array of constraint names. Will defer all constraints by default.
+   */
+  constructor(constraints: string[]) {
     super();
     this.constraints = constraints;
   }
 
-  toSql(queryGenerator) {
+  toSql(queryGenerator: AbstractQueryGenerator): string {
     return queryGenerator.setImmediateQuery(this.constraints);
   }
 }
@@ -93,7 +147,6 @@ class SET_IMMEDIATE extends ABSTRACT {
  * @property SET_DEFERRED          Use when declaring a transaction. Defer the deferrable checks involved in this transaction at commit.
  * @property SET_IMMEDIATE         Use when declaring a transaction. Execute the deferrable checks involved in this transaction immediately.
  */
-
 const Deferrable = {
   INITIALLY_DEFERRED: classToInvokable(INITIALLY_DEFERRED),
   INITIALLY_IMMEDIATE: classToInvokable(INITIALLY_IMMEDIATE),
@@ -102,4 +155,7 @@ const Deferrable = {
   SET_IMMEDIATE: classToInvokable(SET_IMMEDIATE),
 };
 
-module.exports = Deferrable;
+export {
+  ABSTRACT as AbstractDeferrable,
+  Deferrable,
+};

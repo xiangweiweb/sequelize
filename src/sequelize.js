@@ -253,8 +253,11 @@ class Sequelize {
 
     Sequelize.runHooks('beforeInit', config, options);
 
+    if (!options.dialect) {
+      throw new Error('Dialect needs to be explicitly supplied as of v4.0.0');
+    }
+
     this.options = {
-      dialect: null,
       dialectModule: null,
       dialectModulePath: null,
       host: 'localhost',
@@ -280,6 +283,8 @@ class Sequelize {
       },
       transactionType: TRANSACTION_TYPES.DEFERRED,
       isolationLevel: null,
+      // TODO: databaseVersion is not documented?
+      //  move to non-option property that throws if it hasn't been initialized yet
       databaseVersion: 0,
       typeValidation: false,
       benchmark: false,
@@ -287,10 +292,6 @@ class Sequelize {
       logQueryParameters: false,
       ...options,
     };
-
-    if (!this.options.dialect) {
-      throw new Error('Dialect needs to be explicitly supplied as of v4.0.0');
-    }
 
     if (this.options.dialect === 'postgresql') {
       this.options.dialect = 'postgres';
@@ -1240,6 +1241,10 @@ class Sequelize {
     return this.connectionManager.close();
   }
 
+  /**
+   * @param {string | AbstractDataTypeConstructor | AbstractDataType} Type
+   * @returns {AbstractDataType}
+   */
   normalizeDataType(Type) {
     let type = typeof Type === 'function' ? new Type() : Type;
     const dialectTypes = this.dialect.DataTypes || {};

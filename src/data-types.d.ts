@@ -1,3 +1,7 @@
+import { BuiltModelAttribute } from './model.js';
+import { Escapable } from './sql-string.js';
+import { ParamBinder } from './dialects/abstract/query-generator.js';
+
 /**
  * The datatypes are used when defining a new model using `Model.init`, like this:
  * ```js
@@ -42,6 +46,21 @@
  * ```
  */
 
+export type DataTypeValidateOptions = {
+  acceptStrings?: boolean,
+};
+
+export type DataTypeStringifyOptions = {
+  escape(val: Escapable): string,
+  field?: BuiltModelAttribute,
+  timezone: string,
+  operation?: 'where',
+};
+
+export type DataTypesBindParamOptions = DataTypeStringifyOptions & {
+  bindParam: ParamBinder,
+};
+
 /**
  *
  */
@@ -60,8 +79,15 @@ export interface AbstractDataType {
   key: string;
   dialectTypes: string;
   toSql(): string;
-  stringify(value: unknown, options?: object): string;
+  stringify(value: unknown, options?: DataTypeStringifyOptions): string;
   toString(options: object): string;
+
+  /**
+   * Set to false to skip the build-in escape mechanism. You need to escape yourself in {@link AbstractDataType#stringify}.
+   */
+  escape?: boolean;
+  validate?(value: unknown, options?: DataTypeValidateOptions): boolean;
+  bindParam?(value: unknown, options?: DataTypesBindParamOptions): string;
 }
 
 /**

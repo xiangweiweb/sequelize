@@ -1103,7 +1103,11 @@ class Model {
 
     const tableName = this.getTableName();
     this._indexes = this.options.indexes
-      .map(index => Utils.nameIndex(this._conformIndex(index), tableName));
+      .map(index => {
+        index.name = Utils.inferIndexName(this._conformIndex(index), tableName);
+
+        return index;
+      });
 
     this.primaryKeys = {};
     this._readOnlyAttributes = new Set();
@@ -1301,15 +1305,17 @@ class Model {
       }
 
       if (definition.index === true && definition.type instanceof DataTypes.JSONB) {
-        this._indexes.push(
-          Utils.nameIndex(
-            this._conformIndex({
-              fields: [definition.field || name],
-              using: 'gin',
-            }),
-            this.getTableName(),
-          ),
+        const index = this._conformIndex({
+          fields: [definition.field || name],
+          using: 'gin',
+        });
+
+        index.name = Utils.inferIndexName(
+          index,
+          this.getTableName(),
         );
+
+        this._indexes.push(index);
 
         delete definition.index;
       }
