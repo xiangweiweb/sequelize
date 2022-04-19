@@ -903,10 +903,9 @@ export type CountWithOptions<TAttributes = any> = SetRequired<CountOptions<TAttr
 
 export interface FindAndCountOptions<TAttributes = any> extends CountOptions<TAttributes>, FindOptions<TAttributes> { }
 
-export interface GroupedCountResultItem {
-  [key: string]: unknown // projected attributes
-  count: number // the count for each group
-}
+export type GroupedCountResultItem<T, K extends keyof T> = {
+  [P in K]: T[P];
+} & {count: number}
 
 /**
  * Options for Model.build method
@@ -2209,10 +2208,10 @@ export abstract class Model<TModelAttributes extends {} = any, TCreationAttribut
    *
    * @returns Returns count for each group and the projected attributes.
    */
-  public static count<M extends Model>(
+  public static count<M extends Model, GroupAttributesType extends keyof M>(
     this: ModelStatic<M>,
     options: CountWithOptions<Attributes<M>>
-  ): Promise<GroupedCountResultItem[]>;
+  ): Promise<GroupedCountResultItem<M, GroupAttributesType>[]>;
 
   /**
    * Count the number of records matching the provided where clause.
@@ -2273,10 +2272,10 @@ export abstract class Model<TModelAttributes extends {} = any, TCreationAttribut
     this: ModelStatic<M>,
     options?: Omit<FindAndCountOptions<Attributes<M>>, 'group'>
   ): Promise<{ rows: M[]; count: number }>;
-  public static findAndCountAll<M extends Model>(
+  public static findAndCountAll<M extends Model, GroupAttributesType extends keyof M>(
     this: ModelStatic<M>,
     options: SetRequired<FindAndCountOptions<Attributes<M>>, 'group'>
-  ): Promise<{ rows: M[]; count: GroupedCountResultItem[] }>;
+  ): Promise<{ rows: M[]; count: GroupedCountResultItem<M, GroupAttributesType>[] }>;
 
   /**
    * Find the maximum value of field
